@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 set -e
@@ -18,7 +17,7 @@ echo "===== Создание конфигурации ====="
 
 cat > /etc/fail2ban/jail.local <<'EOF'
 [DEFAULT]
-bantime = 59m
+bantime = 10m
 findtime = 10m
 maxretry = 5
 
@@ -33,8 +32,26 @@ EOF
 
 echo "===== Запуск Fail2ban ====="
 
-systemctl enable --now fail2ban
+systemctl enable fail2ban
 systemctl restart fail2ban
+
+echo "===== Ожидание готовности Fail2ban ====="
+
+READY=0
+
+for i in {1..15}; do
+    if fail2ban-client ping >/dev/null 2>&1; then
+        READY=1
+        break
+    fi
+    sleep 1
+done
+
+if [ "$READY" -ne 1 ]; then
+    echo "ОШИБКА: Fail2ban не запустился!"
+    systemctl status fail2ban --no-pager -l
+    exit 1
+fi
 
 echo "===== Проверка работы ====="
 
